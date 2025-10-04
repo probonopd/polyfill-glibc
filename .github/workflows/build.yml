@@ -17,7 +17,22 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y gcc ninja-build
 
-    - name: Build polyfill-glibc
+    - name: Build polyfill-glibc and run it on itself
       shell: sh
       run: |
         ninja polyfill-glibc
+        set -ex
+        TOOL=$(find . -type f -name polyfill-glibc)
+        file "$TOOL"
+        mkdir -p out/
+        cp "$TOOL" out/
+        "$TOOL" --target-glibc=2.17 out/*
+        file out/*
+
+    - name: Upload files
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -e
+        wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
+        bash upload.sh out/*
