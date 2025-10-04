@@ -15,7 +15,7 @@ jobs:
       shell: sh
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc ninja-build
+        sudo apt-get install -y gcc ninja-build patchelf
 
     - name: Build polyfill-glibc and run it on itself
       shell: sh
@@ -23,10 +23,16 @@ jobs:
         ninja polyfill-glibc
         set -ex
         TOOL=$(find . -type f -name polyfill-glibc)
+        strip "$TOOL"
+        ls -lh "$TOOL"
         file "$TOOL"
         mkdir -p out/
         cp "$TOOL" out/
         "$TOOL" --target-glibc=2.17 out/*
+        # Fix "Program headers not in the first page" on FreeBSD Linuxulator
+        # https://github.com/AppImageCrafters/appimage-builder/issues/38#issuecomment-2681621404
+        patchelf --set-interpreter $(patchelf --print-interpreter out/polyfill-glibc) out/polyfill-glibc
+        ls -lh out/*
         file out/*
 
     - name: Upload files
